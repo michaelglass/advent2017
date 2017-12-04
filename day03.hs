@@ -1,5 +1,10 @@
 module Day03 where
 
+import Data.Map (Map)
+import qualified Data.Map as Map
+
+import Data.Maybe
+
 -- 65 64 63 62 61 60 59 58 57
 -- 66 37 36 35 34 33 32 31 56
 -- 67 38 17 16 15 14 13 30 55
@@ -30,6 +35,9 @@ module Day03 where
   -- left   -> (  -2,    2-_)
   -- bottom -> (-2+_,     -2)
 
+
+input = 289326
+
 lastOddSquare :: Integer -> Integer
 lastOddSquare x =
   if even lastSquare then
@@ -58,3 +66,50 @@ spiralPosition x =
     sideLength = lastOddSq + 1
     (side, offset) = divMod distanceToSq sideLength
     distanceToOrigin = (lastOddSq + 1) `div` 2
+
+distanceToOrigin :: Integer -> Integer
+distanceToOrigin x =
+  abs a + abs b
+  where
+    (a,b) = spiralPosition x
+
+part1Answer = spiralPosition input
+
+-- now we have to find the first value greater than our input
+-- where each part of the spiral is a sum of previous neigbors
+-- e.g.
+--  5  4  2  57
+-- 10  1  1  54
+-- 11  23 25 26
+data SumPoint = SumPoint { val :: Integer
+                     , summed:: Integer
+                     , loc :: (Integer,Integer) } deriving (Show, Eq, Ord)
+
+nextSumSpiral :: [SumPoint] -> [SumPoint]
+nextSumSpiral [] = [sumPoint]
+  where
+    sumPoint = SumPoint 1 1 (0,0)
+
+nextSumSpiral (x:xs) = nextPoint : x : xs
+  where
+      spiral = x:xs
+      nextVal = val x + 1
+      nextPosition = spiralPosition nextVal
+      nextSum = sumOf nextPosition spiral
+      nextPoint = SumPoint nextVal nextSum nextPosition
+
+-- expectation: (x,y) not in spiralArr
+sumOf :: (Integer, Integer) -> [SumPoint] -> Integer
+sumOf (x,y) spiralArr = sum vals
+  where
+    tuples = map (\i -> (loc i, i) ) spiralArr
+    spiralMap = Map.fromList tuples
+    neighbors = catMaybes [Map.lookup (a,b) spiralMap | a <- [-1+x..1+x], b <- [-1+y..1+y]]
+    vals = map summed neighbors
+
+sumUntil :: [SumPoint] -> [SumPoint]
+sumUntil spiral
+  | spiral == [] || ((summed . head) spiral < input) = (sumUntil . nextSumSpiral) spiral
+  | otherwise = spiral
+
+part2Answer = summed . head . sumUntil $ []
