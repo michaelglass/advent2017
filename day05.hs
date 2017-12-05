@@ -3,52 +3,42 @@ module Day05 where
 testInput :: [Int]
 testInput = [0, 3, 0, 1, -3] -- but in a newline delimited string
 
-expectedResult :: Integer
+expectedResult :: Int
 expectedResult = 5 -- 5 steps
 
-data Zipper a = Zipper{ before::[a]
-                      , currentAndAfter::[a]} deriving (Show, Eq)
+data Maze = Maze {index        :: Int
+                 ,instructions :: [Int]}
 
-zipperInput :: Zipper Int
-zipperInput = Zipper [] testInput
+mazeInput :: Maze
+mazeInput= Maze 0 testInput
 
-nextStep :: Zipper Int -> Zipper Int
-nextStep (Zipper prev []) = Zipper prev []
-nextStep (Zipper [] next) = Zipper [] next
-nextStep (Zipper prev (c:next)) =
-  step c (Zipper prev (c+1:next))
-  where
-    -- moving right (+1)
-    -- [1,2,3] [4,5,6]  => [1,2,3,4] [5,6]
-    -- (bef ++ take 1 aft) (drop 1 aft)
-    -- moving left (-1)
-    -- [1,2,3] [4,5,6]  => [1,2] [3,4,5,6]
-    -- (take (len - 1) bef) (drop (len - 1) bef ++ aft)
-    step 0 zipper = zipper
-    step shift (Zipper bef aft)
-      | shift > 0 = Zipper (bef ++ take shift aft) (drop shift aft)
-      | otherwise = Zipper (take negShift bef) (drop negShift bef ++ aft)
-        where
-          negShift = length bef + shift
+nextStep :: Maze -> Maze
+nextStep (Maze index instructions)
+  | mazeFinished (Maze index instructions) = Maze index instructions -- do nothing
+  | otherwise = Maze nextIndex nextInstructions
+    where
+      indexVal = instructions !! index
+      nextIndex = indexVal + index
+      prefix = take index instructions
+      suffix = drop (index + 1) instructions
+      nextInstructions = prefix ++ [indexVal + 1] ++ suffix
 
-numStepsTillCompletion :: Num t => Zipper Int -> t
-numStepsTillCompletion zipper =
-  numStepsTillCompletion' 0 zipper
-  where
-    numStepsTillCompletion' acc (Zipper _ []) = acc
-    numStepsTillCompletion' acc (Zipper [] _) = acc
-    numStepsTillCompletiono' acc zipper = numStepsTillCompletion' (acc + 1) (nextStep zipper)
+mazeFinished (Maze index instructions) = index < 0 || index >= length instructions
+
+numStepsTillCompletion maze
+  | mazeFinished maze = 0
+  | otherwise = 1 + (numStepsTillCompletion . nextStep) maze
 
 numToCompletion :: Integer
-numToCompletion = numStepsTillCompletion zipperInput
+numToCompletion = numStepsTillCompletion mazeInput
 
-parseToZipper :: String -> Zipper Int
-parseToZipper str =
-  Zipper [] (map read (lines str))
+parseToMaze :: String -> Maze
+parseToMaze str =
+  Maze 0 (map read (lines str))
 
 
 main :: IO ()
 main =
   do
     testInput <- readFile "day05/input.txt"
-    print . numStepsTillCompletion . parseToZipper $ testInput
+    print . numStepsTillCompletion . parseToMaze $ testInput
