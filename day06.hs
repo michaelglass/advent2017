@@ -25,7 +25,16 @@ redistributeUntilLoop blocks =
   redistributeUntilLoop' [] blocks
   where
     redistributeUntilLoop' history blocks
-      | elem blocks history = history
+      | elem blocks history = blocks : history
       | otherwise = redistributeUntilLoop' (blocks : history) (redistribute blocks)
 
 realInput = [10, 3,	15, 10, 5, 15, 5, 15, 9, 2, 5, 8, 5, 2, 3, 6]
+testInput = [0, 2,7,0]
+main =
+  do
+    print cycles
+    print (cycles - repeatedInd)
+  where
+    (repeated : history) = redistributeUntilLoop realInput
+    cycles = length history
+    repeatedInd = head (elemIndices repeated (reverse history))
